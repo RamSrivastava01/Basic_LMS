@@ -5,7 +5,7 @@ const CartContext = createContext(undefined);
 export function CartProvider({ children }) {
    const [cart, setCart] = useState([]);
 
-   const addToCart = async (course) => {
+   const addToCart = (course) => {
       setCart((prevCart) => {
          const existingCourse = prevCart.find(
             (item) => item.name === course.name,
@@ -36,7 +36,7 @@ export function CartProvider({ children }) {
 
    return (
       <CartContext.Provider
-         value={{ cart, addToCart, removeFromCart, cartCount }}
+         value={{ cart, setCart, addToCart, removeFromCart, cartCount }}
       >
          {children}
       </CartContext.Provider>

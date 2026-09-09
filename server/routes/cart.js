@@ -1,11 +1,32 @@
 import express from "express";
 import Session from "../models/Session.js";
+import Course from "../models/Course.js";
 
 const router = express.Router();
 
 // GET cart
 router.get("/", async (req, res) => {
-   //Add your code here
+   const sessionId = req.signedCookies.sid;
+   const session = await Session.findById(sessionId);
+   const courseIds = session.data.cart.map(({ courseId }) => courseId);
+   const courses = await Course.find({ _id: { $in: courseIds } });
+
+   const cartCourses = courses.map((course) => {
+      const { id, name, image, price } = course;
+      const { quantity } = session.data.cart.find(({ courseId }) => {
+         return courseId === id;
+      });
+      return {
+         id,
+         name,
+         image,
+         price,
+         quantity,
+      };
+   });
+   console.log(cartCourses);
+
+   res.json(cartCourses);
 });
 
 // Add to cart
@@ -59,7 +80,18 @@ router.post("/", async (req, res) => {
 
 // Remove course from cart
 router.delete("/:courseId", async (req, res) => {
-   //Add your code here
+   const sessionId = req.signedCookies.sid;
+   const { courseId } = req.params;
+   const result = await Session.updateOne(
+      { _id: sessionId },
+      {
+         $pull: {
+            "data.cart": { courseId },
+         },
+      },
+   );
+   console.log(result);
+   res.json({ message: "Cart item removed" });
 });
 
 // Clear cart

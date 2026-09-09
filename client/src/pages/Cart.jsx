@@ -31,7 +31,7 @@ export default function Cart() {
          </h1>
          <div className="bg-white dark:bg-gray-800 shadow-lg overflow-hidden divide-y divide-gray-200 rounded-xl dark:divide-gray-700">
             {cart.map((item) => (
-               <CartItem key={item.name} item={item} />
+               <CartItem key={item.id} item={item} />
             ))}
          </div>
          <div className="py-6 bg-gray-50 dark:bg-gray-900">
@@ -43,12 +43,7 @@ export default function Cart() {
                   ₹{total}
                </span>
             </div>
-            <button
-               onClick={() => {
-                  console.log("clicked");
-               }}
-               className="mt-6 w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 px-4 rounded-lg transition-colors"
-            >
+            <button className="mt-6 w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 px-4 rounded-lg transition-colors">
                Proceed to Checkout
             </button>
          </div>

@@ -15,7 +15,7 @@ router.get("/", async (req, res) => {
          res.cookie("sid", session.id, {
             httpOnly: true,
             signed: true,
-            maxAge: 60 * 60 * 1000,
+            maxAge: 60 * 60 * 1000 * 24 * 30,
          });
       }
 
