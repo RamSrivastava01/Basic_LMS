@@ -1,21 +1,37 @@
 import express from "express";
 import Session from "../models/Session.js";
 import Course from "../models/Course.js";
+import Cart from "../models/Cart.js";
 
 const router = express.Router();
 
 // GET cart
 router.get("/", async (req, res) => {
    const sessionId = req.signedCookies.sid;
-   const session = await Session.findById(sessionId);
-   const courseIds = session.data.cart.map(({ courseId }) => courseId);
-   const courses = await Course.find({ _id: { $in: courseIds } });
+   const session =
+      await Session.findById(sessionId).populate("data.cart.courseId");
+   // console.log({ session: session.data.cart });
 
-   const cartCourses = courses.map((course) => {
-      const { id, name, image, price } = course;
-      const { quantity } = session.data.cart.find(({ courseId }) => {
-         return courseId === id;
+   if (!session.userId) {
+      const cartCourses = session.data.cart.map(({ courseId, quantity }) => {
+         const { id, name, image, price } = courseId;
+         return {
+            id,
+            name,
+            image,
+            price,
+            quantity,
+         };
       });
+      return res.json(cartCourses);
+   }
+
+   const data = await Cart.findOne({ userId: session.userId }).populate(
+      "courses.courseId",
+   );
+
+   const cartCourses = data.courses.map(({ courseId, quantity }) => {
+      const { id, name, image, price } = courseId;
       return {
          id,
          name,
@@ -24,14 +40,12 @@ router.get("/", async (req, res) => {
          quantity,
       };
    });
-   console.log(cartCourses);
-
-   res.json(cartCourses);
+   return res.json(cartCourses);
 });
 
 // Add to cart
 router.post("/", async (req, res) => {
-   const session = await Session.findById(req.signedCookies.sid);
+   // const session = await Session.findById(req.signedCookies.sid);
    // session.data.cart.push({
    //    courseId: req.body.courseId,
    //    quantity: 1,
@@ -48,7 +62,33 @@ router.post("/", async (req, res) => {
    // ]);
    const sessionId = req.signedCookies.sid;
    const { courseId } = req.body;
-   console.log({ sessionId, courseId });
+   const session = await Session.findById(sessionId);
+   if (session.userId) {
+      const result = await Cart.updateOne(
+         {
+            userId: session.userId,
+            "courses.courseId": courseId,
+         },
+         {
+            $inc: {
+               "courses.$.quantity": 1,
+            },
+         },
+      );
+
+      if (result.matchedCount == 0) {
+         await Cart.updateOne(
+            { userId: session.userId },
+            {
+               $push: {
+                  courses: { courseId, quantity: 1 },
+               },
+            },
+         );
+      }
+      return res.status(201).json({ message: "course added to the cart" });
+   }
+
    const result = await Session.updateOne(
       {
          _id: sessionId,
@@ -71,10 +111,9 @@ router.post("/", async (req, res) => {
          },
       );
    }
-   console.log({ result });
 
    // await result.save();
-   console.log({ session: session.data.cart, body: req.body });
+
    res.status(201).json({ message: "course added to the cart" });
 });
 
@@ -90,7 +129,7 @@ router.delete("/:courseId", async (req, res) => {
          },
       },
    );
-   console.log(result);
+
    res.json({ message: "Cart item removed" });
 });
 

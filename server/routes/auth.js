@@ -2,6 +2,7 @@ import express from "express";
 
 import User from "../models/User.js";
 import Session from "../models/Session.js";
+import Cart from "../models/Cart.js";
 
 const router = express.Router();
 
@@ -62,6 +63,14 @@ router.post("/login", async (req, res) => {
       if (session) {
          session.expires = Math.round(Date.now() / 1000 + 60 * 60 * 24 * 30);
          session.userId = user._id;
+
+         const result = await Cart.create({
+            userId: user._id,
+            courses: session.data.cart,
+         });
+         session.data = {};
+         console.log(result);
+         await result.save();
          await session.save();
          res.cookie("sid", session.id, {
             httpOnly: true,
@@ -98,13 +107,24 @@ router.post("/login", async (req, res) => {
       res.status(500).json({ message: error.message });
    }
 });
+
+router.post("/logout", async (req, res, next) => {
+   const { sid: sessionId } = req.signedCookies;
+   const session = await Session.findByIdAndDelete(sessionId);
+   res.json({ message: "Logged out successfully" });
+});
 router.get("/profile", async (req, res) => {
    try {
       const { sid: sessionId } = req.signedCookies;
-      console.log({ sessionId });
+
       const session = await Session.findById(sessionId);
 
       if (!session.userId || !session) {
+         return res.status(404).json({ error: "User not Logged in " });
+      }
+
+      if (session.expires < Math.round(Date.now() / 1000)) {
+         await session.deleteOne();
          return res.status(404).json({ error: "User not Logged in " });
       }
 

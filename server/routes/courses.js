@@ -9,8 +9,9 @@ router.get("/", async (req, res) => {
    try {
       const courses = await Course.find();
       const { sid } = req.signedCookies;
-      console.log(sid);
-      if (!sid) {
+
+      const session = await Session.findById(sid);
+      if (!session) {
          const session = await Session.create({});
          res.cookie("sid", session.id, {
             httpOnly: true,
